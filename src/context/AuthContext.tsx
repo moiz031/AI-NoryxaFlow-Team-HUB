@@ -357,6 +357,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           lastLoginAt: nowStr,
           lastActiveAt: nowStr,
         });
+
+        // Write real-time audit log
+        const auditLogDoc = {
+          id: `log_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+          action: 'Member Logged In & Started Shift',
+          actorId: matched.id,
+          actorName: matched.displayName || matched.fullName,
+          actorRole: updatedRole,
+          userName: matched.displayName || matched.fullName,
+          target: matched.displayName || matched.fullName,
+          targetType: 'attendance',
+          details: `${matched.displayName || matched.fullName} is now online and active on duty.`,
+          severity: 'info',
+          timestamp: nowStr,
+        };
+        await setDoc(doc(db, 'auditLogs', auditLogDoc.id), auditLogDoc).catch(() => {});
+
+        // Send real-time notification to admin if it's a team member
+        if (!isAdminEmail) {
+          const notifDoc = {
+            id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+            userId: 'user_admin_michael',
+            senderUserId: matched.id,
+            senderName: matched.displayName || matched.fullName,
+            title: '🟢 Member Active On Shift',
+            message: `${matched.displayName || matched.fullName} logged in and started their shift.`,
+            category: 'attendance',
+            isRead: false,
+            createdAt: nowStr,
+            link: '/admin/activity-log',
+          };
+          await setDoc(doc(db, 'notifications', notifDoc.id), notifDoc).catch(() => {});
+        }
       } catch (err) {
         console.warn('Could not update Firestore user on login:', err);
       }
@@ -432,6 +465,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       try {
         await setDoc(doc(db, 'users', newUserId), newUser);
+
         const auditLogDoc = {
           id: `log_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
           action: 'New Member Registered',
@@ -446,6 +480,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           timestamp: nowStr,
         };
         await setDoc(doc(db, 'auditLogs', auditLogDoc.id), auditLogDoc);
+
+        // Send real-time notification to admin across all devices
+        const notifDoc = {
+          id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+          userId: 'user_admin_michael',
+          senderUserId: newUserId,
+          senderName: name,
+          title: '🎉 New Team Member Registered',
+          message: `${name} (${cleanEmail}) just joined as ${newUser.role} in ${newUser.department} dept!`,
+          category: 'system',
+          isRead: false,
+          createdAt: nowStr,
+          link: '/admin/users',
+        };
+        await setDoc(doc(db, 'notifications', notifDoc.id), notifDoc);
       } catch (err) {
         console.warn('Firestore user save warning:', err);
       }
