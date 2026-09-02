@@ -12,14 +12,14 @@ import {
   SystemSettings,
 } from '../types';
 
-export const INITIAL_ADMIN_EMAIL = 'moiz.noryxa@gmail.com';
+export const INITIAL_ADMIN_EMAIL = 'michaelcarter893283@gmail.com';
 
 export const INITIAL_SETTINGS: SystemSettings = {
   companyName: 'NORYXA Agency',
   productName: 'NORYXA TEAM HUB',
   logoUrl: '',
   primaryColor: '#0f172a',
-  adminEmail: 'moiz.noryxa@gmail.com',
+  adminEmail: 'michaelcarter893283@gmail.com',
   timezone: 'America/New_York (EST)',
   allowUserSelfSignup: true,
   requireAdminApproval: false,
@@ -89,7 +89,7 @@ export const INITIAL_USERS: UserProfile[] = [
   {
     id: 'user_admin_michael',
     uid: 'admin_michael_uid',
-    email: 'moiz.noryxa@gmail.com',
+    email: 'michaelcarter893283@gmail.com',
     fullName: 'Michael Carter',
     displayName: 'Michael Carter',
     username: 'michaelcarter',

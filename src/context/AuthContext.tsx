@@ -104,21 +104,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { isActive: true, startTime: new Date().toISOString(), secondsElapsed: 1420 };
   });
 
-  // Migration: Fix stale admin email in localStorage if present
+  // Migration: Ensure admin email is always michaelcarter893283@gmail.com in localStorage
   useEffect(() => {
     const savedUsers = localStorage.getItem(LOCAL_STORAGE_USERS_KEY);
     if (savedUsers) {
       try {
         const parsed: UserProfile[] = JSON.parse(savedUsers);
-        const needsMigration = parsed.some(
-          (u) => u.email === 'michaelcarter893283@gmail.com'
-        );
-        if (needsMigration) {
-          const migrated = parsed.map((u) =>
-            u.email === 'michaelcarter893283@gmail.com'
-              ? { ...u, email: 'moiz.noryxa@gmail.com', role: 'admin' as const }
-              : u
-          );
+        let changed = false;
+        const migrated = parsed.map((u) => {
+          if (u.email === 'moiz.noryxa@gmail.com' || u.id === 'user_admin_michael') {
+            changed = true;
+            return {
+              ...u,
+              email: 'michaelcarter893283@gmail.com',
+              role: 'admin' as const,
+              fullName: 'Michael Carter',
+              displayName: 'Michael Carter',
+            };
+          }
+          return u;
+        });
+
+        // Ensure admin user exists in list
+        const adminExists = migrated.some((u) => u.email.toLowerCase() === 'michaelcarter893283@gmail.com');
+        if (!adminExists) {
+          migrated.unshift(INITIAL_USERS[0]);
+          changed = true;
+        }
+
+        if (changed) {
           localStorage.setItem(LOCAL_STORAGE_USERS_KEY, JSON.stringify(migrated));
           setUsers(migrated);
         }
@@ -301,7 +315,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
 
-      const matched = users.find((u) => u.email.toLowerCase() === cleanEmail);
+      let matched = users.find((u) => u.email.toLowerCase() === cleanEmail);
+
+      if (!matched && isAdminEmail) {
+        matched = INITIAL_USERS[0];
+        setUsers((prev) => [matched!, ...prev.filter((u) => u.id !== matched!.id)]);
+      }
 
       if (!matched) {
         throw new Error('No account found with this email. Please register first.');
@@ -313,7 +332,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setCurrentUserId(matched.id);
       setUsers((prev) =>
         prev.map((u) =>
-          u.id === matched.id
+          u.id === matched!.id
             ? {
                 ...u,
                 role: updatedRole,
@@ -370,6 +389,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error('Access Denied! Admin registration requires password: moiz@7222');
       }
 
+      // Strict role enforcement: Only michaelcarter893283@gmail.com can be admin
+      const finalRole: UserRole = isAdminEmail ? 'admin' : (role === 'admin' ? 'member' : role);
+
       const existing = users.find((u) => u.email.toLowerCase() === cleanEmail);
       if (existing) {
         throw new Error('An account with this email already exists. Please sign in instead.');
@@ -386,7 +408,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         fullName: name,
         displayName: name,
         username: cleanEmail.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, ''),
-        role: isAdminEmail ? 'admin' : role,
+        role: finalRole,
         status: 'active',
         onlineStatus: 'online',
         authProvider: 'email',
