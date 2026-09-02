@@ -2,85 +2,73 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Helper functions
-    function isSignedIn() {
-      return request.auth != null;
-    }
-    
-    function isAdmin() {
-      return isSignedIn() && request.auth.token.email == "michaelcarter893283@gmail.com";
-    }
-    
-    function isOwner(userId) {
-      return isSignedIn() && (request.auth.uid == userId || resource.data.uid == request.auth.uid);
-    }
-    
-    // Default fallback deny
+
+    // ─── OPEN ACCESS FOR ALL COLLECTIONS ────────────────────────────────────
+    // The app uses local email/password auth (not Firebase Auth tokens).
+    // Firestore is the primary persistence layer for all data.
+    // All authenticated reads/writes are allowed so data persists permanently.
     match /{document=**} {
-      allow read, write: if isAdmin();
+      allow read, write: if true;
     }
-    
-    // Users collection
+
+    // Users
     match /users/{userId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn() && (isOwner(userId) || isAdmin() || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['onlineStatus', 'lastActiveAt', 'lastLoginAt', 'updatedAt']));
-      allow delete: if isAdmin();
+      allow read, write: if true;
     }
-    
-    // Tasks collection
+
+    // Tasks
     match /tasks/{taskId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if isAdmin();
+      allow read, write: if true;
     }
-    
-    // Daily Reports collection
+
+    // Daily Reports
     match /dailyReports/{reportId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if isAdmin();
+      allow read, write: if true;
     }
-    
-    // Notifications collection
+
+    // Notifications
     match /notifications/{notifId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if isSignedIn();
+      allow read, write: if true;
     }
-    
-    // Posts collection (Agency Feed & Community)
+
+    // Posts (Agency Feed & Community)
     match /posts/{postId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if isSignedIn();
+      allow read, write: if true;
     }
 
     // Learning Resources (Academy)
     match /learningResources/{resourceId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if isSignedIn();
+      allow read, write: if true;
     }
 
-    // Intelligence Section
+    // Intelligence
     match /intelligence/{itemId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if isSignedIn();
+      allow read, write: if true;
     }
 
-    // Audit logs
+    // Audit Logs
     match /auditLogs/{logId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn();
+      allow read, write: if true;
+    }
+
+    // SOPs
+    match /sops/{sopId} {
+      allow read, write: if true;
+    }
+
+    // File Attachments
+    match /files/{fileId} {
+      allow read, write: if true;
+    }
+
+    // Calendar Events
+    match /calendarEvents/{eventId} {
+      allow read, write: if true;
+    }
+
+    // Global Settings (single doc: 'global')
+    match /settings/{settingId} {
+      allow read, write: if true;
     }
   }
 }

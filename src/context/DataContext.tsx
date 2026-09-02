@@ -158,185 +158,147 @@ const DataContext = createContext<DataContextType | undefined>(undefined);
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { currentUser, isAdmin } = useAuth();
 
-  // Clean legacy mock cache if present
-  useEffect(() => {
-    const legacyKeys = [
-      'noryxa_tasks_db', 'noryxa_reports_db', 'noryxa_attendance_db',
-      'noryxa_posts_db', 'noryxa_learning_db', 'noryxa_sops_db',
-      'noryxa_calendar_db', 'noryxa_notifications_db', 'noryxa_audit_logs_db',
-      'noryxa_files_db'
-    ];
-    legacyKeys.forEach((key) => localStorage.removeItem(key));
-  }, []);
+  // ─── STATE: Firestore is Primary Source of Truth ───────────────────────────
+  // State initializes from localStorage (offline cache), then Firestore
+  // onSnapshot listeners ALWAYS override with live cloud data (no length guard).
 
-  // Local storage state keys - initialized cleanly with zero artificial records
   const [tasks, setTasks] = useState<Task[]>(() => {
-    const saved = localStorage.getItem('noryxa_agency_v5_tasks');
-    return saved ? JSON.parse(saved) : INITIAL_TASKS;
+    try { const s = localStorage.getItem('noryxa_v6_tasks'); return s ? JSON.parse(s) : INITIAL_TASKS; } catch { return INITIAL_TASKS; }
   });
-
   const [dailyReports, setDailyReports] = useState<DailyReport[]>(() => {
-    const saved = localStorage.getItem('noryxa_agency_v5_reports');
-    return saved ? JSON.parse(saved) : INITIAL_DAILY_REPORTS;
+    try { const s = localStorage.getItem('noryxa_v6_reports'); return s ? JSON.parse(s) : INITIAL_DAILY_REPORTS; } catch { return INITIAL_DAILY_REPORTS; }
   });
-
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>(() => {
-    const saved = localStorage.getItem('noryxa_agency_v5_attendance');
-    return saved ? JSON.parse(saved) : INITIAL_ATTENDANCE;
+    try { const s = localStorage.getItem('noryxa_v6_attendance'); return s ? JSON.parse(s) : INITIAL_ATTENDANCE; } catch { return INITIAL_ATTENDANCE; }
   });
-
   const [communityPosts, setCommunityPosts] = useState<CommunityPost[]>(() => {
-    const saved = localStorage.getItem('noryxa_agency_v5_posts');
-    return saved ? JSON.parse(saved) : INITIAL_COMMUNITY_POSTS;
+    try { const s = localStorage.getItem('noryxa_v6_posts'); return s ? JSON.parse(s) : INITIAL_COMMUNITY_POSTS; } catch { return INITIAL_COMMUNITY_POSTS; }
   });
-
   const [learningResources, setLearningResources] = useState<LearningResource[]>(() => {
-    const saved = localStorage.getItem('noryxa_agency_v5_learning');
-    return saved ? JSON.parse(saved) : INITIAL_LEARNING_RESOURCES;
+    try { const s = localStorage.getItem('noryxa_v6_learning'); return s ? JSON.parse(s) : INITIAL_LEARNING_RESOURCES; } catch { return INITIAL_LEARNING_RESOURCES; }
   });
-
   const [sops, setSops] = useState<SOPItem[]>(() => {
-    const saved = localStorage.getItem('noryxa_agency_v5_sops');
-    return saved ? JSON.parse(saved) : INITIAL_SOPS;
+    try { const s = localStorage.getItem('noryxa_v6_sops'); return s ? JSON.parse(s) : INITIAL_SOPS; } catch { return INITIAL_SOPS; }
   });
-
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>(() => {
-    const saved = localStorage.getItem('noryxa_agency_v5_calendar');
-    return saved ? JSON.parse(saved) : INITIAL_CALENDAR_EVENTS;
+    try { const s = localStorage.getItem('noryxa_v6_calendar'); return s ? JSON.parse(s) : INITIAL_CALENDAR_EVENTS; } catch { return INITIAL_CALENDAR_EVENTS; }
   });
-
   const [notifications, setNotifications] = useState<Notification[]>(() => {
-    const saved = localStorage.getItem('noryxa_agency_v5_notifications');
-    return saved ? JSON.parse(saved) : INITIAL_NOTIFICATIONS;
+    try { const s = localStorage.getItem('noryxa_v6_notifications'); return s ? JSON.parse(s) : INITIAL_NOTIFICATIONS; } catch { return INITIAL_NOTIFICATIONS; }
   });
-
   const [intelligenceItems, setIntelligenceItems] = useState<IntelligenceItem[]>(() => {
-    const saved = localStorage.getItem('noryxa_agency_v5_intelligence');
-    return saved ? JSON.parse(saved) : [];
+    try { const s = localStorage.getItem('noryxa_v6_intelligence'); return s ? JSON.parse(s) : []; } catch { return []; }
   });
-
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>(() => {
-    const saved = localStorage.getItem('noryxa_agency_v5_audit_logs');
-    return saved ? JSON.parse(saved) : INITIAL_AUDIT_LOGS;
+    try { const s = localStorage.getItem('noryxa_v6_audit'); return s ? JSON.parse(s) : INITIAL_AUDIT_LOGS; } catch { return INITIAL_AUDIT_LOGS; }
   });
-
   const [settings, setSettings] = useState<SystemSettings>(() => {
-    const saved = localStorage.getItem('noryxa_agency_v5_settings');
-    return saved ? JSON.parse(saved) : INITIAL_SETTINGS;
+    try { const s = localStorage.getItem('noryxa_v6_settings'); return s ? JSON.parse(s) : INITIAL_SETTINGS; } catch { return INITIAL_SETTINGS; }
   });
-
   const [files, setFiles] = useState<AttachmentFile[]>(() => {
-    const saved = localStorage.getItem('noryxa_agency_v5_files');
-    if (saved) return JSON.parse(saved);
-    return [];
+    try { const s = localStorage.getItem('noryxa_v6_files'); return s ? JSON.parse(s) : []; } catch { return []; }
   });
-
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  // Persistence hooks
-  useEffect(() => { localStorage.setItem('noryxa_agency_v5_tasks', JSON.stringify(tasks)); }, [tasks]);
-  useEffect(() => { localStorage.setItem('noryxa_agency_v5_reports', JSON.stringify(dailyReports)); }, [dailyReports]);
-  useEffect(() => { localStorage.setItem('noryxa_agency_v5_attendance', JSON.stringify(attendanceRecords)); }, [attendanceRecords]);
-  useEffect(() => { localStorage.setItem('noryxa_agency_v5_posts', JSON.stringify(communityPosts)); }, [communityPosts]);
-  useEffect(() => { localStorage.setItem('noryxa_agency_v5_learning', JSON.stringify(learningResources)); }, [learningResources]);
-  useEffect(() => { localStorage.setItem('noryxa_agency_v5_intelligence', JSON.stringify(intelligenceItems)); }, [intelligenceItems]);
-  useEffect(() => { localStorage.setItem('noryxa_agency_v5_sops', JSON.stringify(sops)); }, [sops]);
-  useEffect(() => { localStorage.setItem('noryxa_agency_v5_calendar', JSON.stringify(calendarEvents)); }, [calendarEvents]);
-  useEffect(() => { localStorage.setItem('noryxa_agency_v5_notifications', JSON.stringify(notifications)); }, [notifications]);
-  useEffect(() => { localStorage.setItem('noryxa_agency_v5_audit_logs', JSON.stringify(auditLogs)); }, [auditLogs]);
-  useEffect(() => { localStorage.setItem('noryxa_agency_v5_settings', JSON.stringify(settings)); }, [settings]);
-  useEffect(() => { localStorage.setItem('noryxa_agency_v5_files', JSON.stringify(files)); }, [files]);
+  // ─── OFFLINE CACHE: Keep localStorage in sync as fallback ──────────────────
+  useEffect(() => { try { localStorage.setItem('noryxa_v6_tasks', JSON.stringify(tasks)); } catch {} }, [tasks]);
+  useEffect(() => { try { localStorage.setItem('noryxa_v6_reports', JSON.stringify(dailyReports)); } catch {} }, [dailyReports]);
+  useEffect(() => { try { localStorage.setItem('noryxa_v6_attendance', JSON.stringify(attendanceRecords)); } catch {} }, [attendanceRecords]);
+  useEffect(() => { try { localStorage.setItem('noryxa_v6_posts', JSON.stringify(communityPosts)); } catch {} }, [communityPosts]);
+  useEffect(() => { try { localStorage.setItem('noryxa_v6_learning', JSON.stringify(learningResources)); } catch {} }, [learningResources]);
+  useEffect(() => { try { localStorage.setItem('noryxa_v6_intelligence', JSON.stringify(intelligenceItems)); } catch {} }, [intelligenceItems]);
+  useEffect(() => { try { localStorage.setItem('noryxa_v6_sops', JSON.stringify(sops)); } catch {} }, [sops]);
+  useEffect(() => { try { localStorage.setItem('noryxa_v6_calendar', JSON.stringify(calendarEvents)); } catch {} }, [calendarEvents]);
+  useEffect(() => { try { localStorage.setItem('noryxa_v6_notifications', JSON.stringify(notifications)); } catch {} }, [notifications]);
+  useEffect(() => { try { localStorage.setItem('noryxa_v6_audit', JSON.stringify(auditLogs)); } catch {} }, [auditLogs]);
+  useEffect(() => { try { localStorage.setItem('noryxa_v6_settings', JSON.stringify(settings)); } catch {} }, [settings]);
+  useEffect(() => { try { localStorage.setItem('noryxa_v6_files', JSON.stringify(files)); } catch {} }, [files]);
 
-  // Real-Time Firestore Synchronization
+  // ─── FIRESTORE REAL-TIME LISTENERS: Primary persistence layer ──────────────
+  // NOTE: No 'if list.length > 0' guard — Firestore is ALWAYS authoritative.
   useEffect(() => {
     if (!db) return;
-
+    const unsubs: (() => void)[] = [];
     try {
-      // 1. Notifications listener
-      const unsubNotifs = onSnapshot(collection(db, 'notifications'), (snapshot) => {
-        const list: Notification[] = [];
-        snapshot.forEach((d) => list.push(d.data() as Notification));
-        list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        if (list.length > 0) setNotifications(list);
-      }, (err) => console.log('Firestore notifications listener note:', err.message));
-
-      // 2. Posts & Feed listener
-      const unsubPosts = onSnapshot(collection(db, 'posts'), (snapshot) => {
-        const list: CommunityPost[] = [];
-        snapshot.forEach((d) => list.push(d.data() as CommunityPost));
-        list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        if (list.length > 0) setCommunityPosts(list);
-      }, (err) => console.log('Firestore posts listener note:', err.message));
-
-      // 3. Learning Resources listener
-      const unsubLearning = onSnapshot(collection(db, 'learningResources'), (snapshot) => {
-        const list: LearningResource[] = [];
-        snapshot.forEach((d) => list.push(d.data() as LearningResource));
-        list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        if (list.length > 0) setLearningResources(list);
-      }, (err) => console.log('Firestore learning listener note:', err.message));
-
-      // 4. Intelligence listener
-      const unsubIntel = onSnapshot(collection(db, 'intelligence'), (snapshot) => {
-        const list: IntelligenceItem[] = [];
-        snapshot.forEach((d) => list.push(d.data() as IntelligenceItem));
-        list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        if (list.length > 0) setIntelligenceItems(list);
-      }, (err) => console.log('Firestore intelligence listener note:', err.message));
-
-      // 5. Audit logs listener
-      const unsubAudit = onSnapshot(collection(db, 'auditLogs'), (snapshot) => {
-        const list: AuditLog[] = [];
-        snapshot.forEach((d) => list.push(d.data() as AuditLog));
-        list.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-        if (list.length > 0) setAuditLogs(list);
-      }, (err) => console.log('Firestore audit logs listener note:', err.message));
-
-      // 6. Tasks listener
-      const unsubTasks = onSnapshot(collection(db, 'tasks'), (snapshot) => {
+      unsubs.push(onSnapshot(collection(db, 'tasks'), (snap) => {
         const list: Task[] = [];
-        snapshot.forEach((d) => list.push(d.data() as Task));
+        snap.forEach((d) => list.push(d.data() as Task));
         list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        if (list.length > 0) setTasks(list);
-      }, (err) => console.log('Firestore tasks listener note:', err.message));
+        setTasks(list.length > 0 ? list : INITIAL_TASKS);
+      }, (e) => console.warn('tasks listener:', e.message)));
 
-      // 7. Daily Reports listener
-      const unsubReports = onSnapshot(collection(db, 'dailyReports'), (snapshot) => {
+      unsubs.push(onSnapshot(collection(db, 'posts'), (snap) => {
+        const list: CommunityPost[] = [];
+        snap.forEach((d) => list.push(d.data() as CommunityPost));
+        list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        setCommunityPosts(list.length > 0 ? list : INITIAL_COMMUNITY_POSTS);
+      }, (e) => console.warn('posts listener:', e.message)));
+
+      unsubs.push(onSnapshot(collection(db, 'notifications'), (snap) => {
+        const list: Notification[] = [];
+        snap.forEach((d) => list.push(d.data() as Notification));
+        list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        setNotifications(list);
+      }, (e) => console.warn('notifs listener:', e.message)));
+
+      unsubs.push(onSnapshot(collection(db, 'learningResources'), (snap) => {
+        const list: LearningResource[] = [];
+        snap.forEach((d) => list.push(d.data() as LearningResource));
+        list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        setLearningResources(list.length > 0 ? list : INITIAL_LEARNING_RESOURCES);
+      }, (e) => console.warn('learning listener:', e.message)));
+
+      unsubs.push(onSnapshot(collection(db, 'intelligence'), (snap) => {
+        const list: IntelligenceItem[] = [];
+        snap.forEach((d) => list.push(d.data() as IntelligenceItem));
+        list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        setIntelligenceItems(list);
+      }, (e) => console.warn('intel listener:', e.message)));
+
+      unsubs.push(onSnapshot(collection(db, 'auditLogs'), (snap) => {
+        const list: AuditLog[] = [];
+        snap.forEach((d) => list.push(d.data() as AuditLog));
+        list.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        setAuditLogs(list.length > 0 ? list : INITIAL_AUDIT_LOGS);
+      }, (e) => console.warn('audit listener:', e.message)));
+
+      unsubs.push(onSnapshot(collection(db, 'dailyReports'), (snap) => {
         const list: DailyReport[] = [];
-        snapshot.forEach((d) => list.push(d.data() as DailyReport));
+        snap.forEach((d) => list.push(d.data() as DailyReport));
         list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        if (list.length > 0) setDailyReports(list);
-      }, (err) => console.log('Firestore dailyReports listener note:', err.message));
+        setDailyReports(list.length > 0 ? list : INITIAL_DAILY_REPORTS);
+      }, (e) => console.warn('reports listener:', e.message)));
 
-      // 8. Files listener
-      const unsubFiles = onSnapshot(collection(db, 'files'), (snapshot) => {
+      unsubs.push(onSnapshot(collection(db, 'files'), (snap) => {
         const list: AttachmentFile[] = [];
-        snapshot.forEach((d) => list.push(d.data() as AttachmentFile));
+        snap.forEach((d) => list.push(d.data() as AttachmentFile));
         list.sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime());
-        if (list.length > 0) setFiles(list);
-      }, (err) => console.log('Firestore files listener note:', err.message));
+        setFiles(list);
+      }, (e) => console.warn('files listener:', e.message)));
 
-      // 9. SOPs listener
-      const unsubSops = onSnapshot(collection(db, 'sops'), (snapshot) => {
+      unsubs.push(onSnapshot(collection(db, 'sops'), (snap) => {
         const list: SOPItem[] = [];
-        snapshot.forEach((d) => list.push(d.data() as SOPItem));
-        if (list.length > 0) setSops(list);
-      }, (err) => console.log('Firestore sops listener note:', err.message));
+        snap.forEach((d) => list.push(d.data() as SOPItem));
+        setSops(list.length > 0 ? list : INITIAL_SOPS);
+      }, (e) => console.warn('sops listener:', e.message)));
 
-      return () => {
-        unsubNotifs();
-        unsubPosts();
-        unsubLearning();
-        unsubIntel();
-        unsubAudit();
-        unsubTasks();
-        unsubReports();
-        unsubFiles();
-        unsubSops();
-      };
+      unsubs.push(onSnapshot(collection(db, 'settings'), (snap) => {
+        if (!snap.empty) {
+          const data = snap.docs[0]?.data() as SystemSettings;
+          if (data) setSettings(data);
+        }
+      }, (e) => console.warn('settings listener:', e.message)));
+
+      unsubs.push(onSnapshot(collection(db, 'calendarEvents'), (snap) => {
+        const list: CalendarEvent[] = [];
+        snap.forEach((d) => list.push(d.data() as CalendarEvent));
+        setCalendarEvents(list.length > 0 ? list : INITIAL_CALENDAR_EVENTS);
+      }, (e) => console.warn('calendar listener:', e.message)));
+
     } catch (err) {
-      console.warn('Real-time listener setup fallback:', err);
+      console.warn('Firestore listener setup error:', err);
     }
+    return () => unsubs.forEach((u) => u());
   }, []);
 
   // Audit Logger helper
@@ -661,7 +623,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const updatedChecklist = t.checklist.map((c) =>
             c.id === checklistId ? { ...c, completed: !c.completed } : c
           );
-          return { ...t, checklist: updatedChecklist, updatedAt: new Date().toISOString() };
+          const updated = { ...t, checklist: updatedChecklist, updatedAt: new Date().toISOString() };
+          // Persist checklist state to Firestore
+          if (db) setDoc(doc(db, 'tasks', taskId), updated).catch((e) => console.warn('checklist sync:', e));
+          return updated;
         }
         return t;
       })
@@ -1140,7 +1105,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const togglePinPost = (postId: string) => {
     if (!isAdmin) return;
     setCommunityPosts((prev) =>
-      prev.map((p) => (p.id === postId ? { ...p, isPinned: !p.isPinned } : p))
+      prev.map((p) => {
+        if (p.id === postId) {
+          const updated = { ...p, isPinned: !p.isPinned };
+          if (db) setDoc(doc(db, 'posts', postId), updated).catch((e) => console.warn('pin post:', e));
+          return updated;
+        }
+        return p;
+      })
     );
   };
 
@@ -1157,6 +1129,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       createdAt: new Date().toISOString(),
     };
     setLearningResources((prev) => [newRes, ...prev]);
+    // Persist to Firestore
+    if (db) setDoc(doc(db, 'learningResources', newRes.id), newRes).catch((e) => console.warn('learning save:', e));
     logAuditAction('Learning Resource Published', newRes.title, 'settings', `Category: ${newRes.category}`);
     return newRes;
   };
@@ -1169,15 +1143,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (r.id === resourceId) {
           resourceTitle = r.title;
           const completed = r.completedByUsers.includes(currentUser.id);
-          const updated = completed
+          const updatedUsers = completed
             ? r.completedByUsers.filter((id) => id !== currentUser.id)
             : [...r.completedByUsers, currentUser.id];
-          return { ...r, completedByUsers: updated };
+          const updated = { ...r, completedByUsers: updatedUsers };
+          // Persist completion to Firestore
+          if (db) setDoc(doc(db, 'learningResources', resourceId), updated).catch((e) => console.warn('learning completion:', e));
+          return updated;
         }
         return r;
       })
     );
-
     logAuditAction('Academy Progress Updated', resourceTitle, 'sop', `User ${currentUser.displayName} toggled completion.`);
   };
 
@@ -1189,19 +1165,29 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       lastUpdated: new Date().toISOString().split('T')[0],
     };
     setSops((prev) => [newSOP, ...prev]);
+    // Persist to Firestore
+    if (db) setDoc(doc(db, 'sops', newSOP.id), newSOP).catch((e) => console.warn('sop save:', e));
     logAuditAction('SOP Created', newSOP.title, 'sop', `Version: ${newSOP.version}`);
     return newSOP;
   };
 
   const updateSOP = (sopId: string, updates: Partial<SOPItem>) => {
     setSops((prev) =>
-      prev.map((s) => (s.id === sopId ? { ...s, ...updates, lastUpdated: new Date().toISOString().split('T')[0] } : s))
+      prev.map((s) => {
+        if (s.id === sopId) {
+          const updated = { ...s, ...updates, lastUpdated: new Date().toISOString().split('T')[0] };
+          if (db) setDoc(doc(db, 'sops', sopId), updated).catch((e) => console.warn('sop update:', e));
+          return updated;
+        }
+        return s;
+      })
     );
     logAuditAction('SOP Updated', sopId, 'sop', 'Admin modified SOP');
   };
 
   const deleteSOP = (sopId: string) => {
     setSops((prev) => prev.filter((s) => s.id !== sopId));
+    if (db) deleteDoc(doc(db, 'sops', sopId)).catch((e) => console.warn('sop delete:', e));
   };
 
   // Calendar Events
@@ -1212,35 +1198,60 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       createdBy: currentUser?.id || 'admin',
     };
     setCalendarEvents((prev) => [newEvent, ...prev]);
+    // Persist to Firestore
+    if (db) setDoc(doc(db, 'calendarEvents', newEvent.id), newEvent).catch((e) => console.warn('cal save:', e));
     return newEvent;
   };
 
   const deleteCalendarEvent = (eventId: string) => {
     setCalendarEvents((prev) => prev.filter((e) => e.id !== eventId));
+    if (db) deleteDoc(doc(db, 'calendarEvents', eventId)).catch((e) => console.warn('cal delete:', e));
   };
 
   // Notifications
   const markNotificationAsRead = (notificationId: string) => {
     setNotifications((prev) =>
-      prev.map((n) => (n.id === notificationId ? { ...n, isRead: true } : n))
+      prev.map((n) => {
+        if (n.id === notificationId) {
+          const updated = { ...n, isRead: true };
+          // Persist read status to Firestore
+          if (db) setDoc(doc(db, 'notifications', notificationId), updated).catch((e) => console.warn('notif read:', e));
+          return updated;
+        }
+        return n;
+      })
     );
   };
 
   const markAllNotificationsAsRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    setNotifications((prev) => prev.map((n) => {
+      const updated = { ...n, isRead: true };
+      // Persist each read status to Firestore
+      if (db && !n.isRead) setDoc(doc(db, 'notifications', n.id), updated).catch(() => {});
+      return updated;
+    }));
   };
 
   // Settings
   const updateSettings = (updates: Partial<SystemSettings>) => {
-    setSettings((prev) => ({ ...prev, ...updates }));
+    setSettings((prev) => {
+      const updated = { ...prev, ...updates };
+      // Persist settings to Firestore under a fixed doc ID
+      if (db) setDoc(doc(db, 'settings', 'global'), updated).catch((e) => console.warn('settings save:', e));
+      return updated;
+    });
     logAuditAction('System Settings Updated', 'Global Settings', 'settings', 'Updated system preferences');
   };
 
   const addCustomFieldTemplate = (name: string, category: string, fields: CustomFieldDefinition[]) => {
-    setSettings((prev) => ({
-      ...prev,
-      customTaskTemplates: [...prev.customTaskTemplates, { name, category, fields }],
-    }));
+    setSettings((prev) => {
+      const updated = {
+        ...prev,
+        customTaskTemplates: [...prev.customTaskTemplates, { name, category, fields }],
+      };
+      if (db) setDoc(doc(db, 'settings', 'global'), updated).catch((e) => console.warn('settings template save:', e));
+      return updated;
+    });
   };
 
   // Export Data Utilities
