@@ -1,0 +1,6 @@
+{
+  "name": "NORYXA TEAM HUB",
+  "description": "Team Management, Task Management, Attendance, Proof-of-Work and Internal Community Web Platform for NORYXA Agency.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

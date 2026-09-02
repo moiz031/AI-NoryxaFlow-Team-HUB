@@ -1,0 +1,79 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile representation in Noryxa OS",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "fullName": { "type": "string" },
+        "displayName": { "type": "string" },
+        "username": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "member"] },
+        "status": { "type": "string", "enum": ["active", "inactive", "pending"] },
+        "onlineStatus": { "type": "string", "enum": ["online", "away", "offline"] },
+        "authProvider": { "type": "string", "enum": ["email", "google"] },
+        "avatarUrl": { "type": "string" },
+        "jobTitle": { "type": "string" },
+        "department": { "type": "string" },
+        "isOnboarded": { "type": "boolean" },
+        "lastActiveAt": { "type": "string" },
+        "lastLoginAt": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "email", "fullName", "role", "status", "onlineStatus"]
+    },
+    "Task": {
+      "title": "Task",
+      "description": "Agency deliverable task item",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "category": { "type": "string" },
+        "priority": { "type": "string" },
+        "status": { "type": "string" },
+        "deadline": { "type": "string" },
+        "createdBy": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "title", "status", "createdBy"]
+    },
+    "DailyReport": {
+      "title": "DailyReport",
+      "description": "Daily work submission report from specialists",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "userName": { "type": "string" },
+        "date": { "type": "string" },
+        "leadsGenerated": { "type": "number" },
+        "leadsContacted": { "type": "number" },
+        "repliesReceived": { "type": "number" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "userId", "userEmail", "date"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Collection of user profiles"
+    },
+    "/tasks/{taskId}": {
+      "schema": { "$ref": "#/entities/Task" },
+      "description": "Collection of tasks"
+    },
+    "/dailyReports/{reportId}": {
+      "schema": { "$ref": "#/entities/DailyReport" },
+      "description": "Collection of daily work reports"
+    }
+  }
+}
